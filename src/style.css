@@ -1,0 +1,83 @@
+:root {
+    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    --background: #e4e3e3;
+    --color: #2a2a2e;
+
+    color-scheme: light dark;
+    color: rgba(255, 255, 255, 0.87);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+* {
+    margin: 0;
+}
+
+body {
+    line-height: 1.4;
+    margin: unset;
+    -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+}
+
+img,
+picture,
+svg,
+canvas {
+    display: block;
+    max-inline-size: 100%;
+    block-size: auto;
+}
+
+
+#map {
+    position: absolute;
+    inset: 0;
+}
+
+#app {
+    position: absolute;
+    left: 1rem;
+    top: 1rem;
+    z-index: 1;
+    background-color: var(--background);
+    color: var(--color);
+    padding: 1em;
+    width: 20em;
+    border-radius: 1em;
+    box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.2),
+    0 4px 5px 0 rgba(0, 0, 0, 0.14),
+    0 1px 10px 0 rgba(0, 0, 0, 0.12);
+}
+
+.description {
+    font-size: 0.9em;
+}
+
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color: #c1c1c5;
+        --background: #15npm 1d3c;
+    }
+}

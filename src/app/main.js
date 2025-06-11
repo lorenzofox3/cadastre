@@ -1,9 +1,9 @@
 import './style.css';
 import '@maptiler/sdk/dist/maptiler-sdk.css';
 import * as maptilersdk from '@maptiler/sdk';
-import { union, featureCollection, buffer, difference } from '@turf/turf';
+import { createStore } from './store.js';
 
-maptilersdk.config.apiKey = '<API_KEY>';
+maptilersdk.config.apiKey = '<API KEY>';
 const map = new maptilersdk.Map({
   container: 'map', // container's id or the HTML element to render the map
   style: maptilersdk.MapStyle.HYBRID,
@@ -12,9 +12,11 @@ const map = new maptilersdk.Map({
 });
 
 map.on('load', () => {
+  const store = createStore({ map });
+
   map.addSource('cadastre', {
     type: 'geojson',
-    data: '/data/parcelles.json',
+    data: '/data/lands.json',
     promoteId: 'id',
   });
 
@@ -27,7 +29,7 @@ map.on('load', () => {
   });
 
   map.addLayer({
-    id: 'parcelles-fill',
+    id: 'lands-fill',
     type: 'fill',
     source: 'cadastre',
     paint: {
@@ -52,7 +54,7 @@ map.on('load', () => {
   });
 
   map.addLayer({
-    id: 'parcelles-countours',
+    id: 'lands-countours',
     type: 'line',
     source: 'cadastre',
     paint: {
@@ -75,73 +77,55 @@ map.on('load', () => {
     },
   });
 
-  map.on('click', 'parcelles-fill', function (e) {
-    const featureId = e.features?.at(0)?.properties?.id;
-    if (featureId) {
-      const features = map.querySourceFeatures('cadastre', {
-        filter: ['==', ['get', 'id'], featureId],
-      });
-      const combinedPolygon =
-        features.length >= 2
-          ? union(featureCollection(features))
-          : features.at(0);
-
-      const insetPolygon = buffer(combinedPolygon, -4, { units: 'meters' });
-      const ringPolygon = insetPolygon
-        ? difference(featureCollection([combinedPolygon, insetPolygon]))
-        : combinedPolygon;
-
-      const geoJSON = {
-        type: 'FeatureCollection',
-        features: [ringPolygon],
-      };
-      map.getSource('limit-overlay').setData(geoJSON);
-    }
+  store.addEventListener('landSelected', (event) => {
+    const { selectedLand } = store.getState();
+    map.getSource('limit-overlay').setData(selectedLand.ringGeoJSON);
   });
 
-  let hoverId;
+  store.addEventListener('landHighlighted', ({ detail }) => {
+    const canvas = map.getCanvas();
+    const { oldLandId, newLandId } = detail;
 
-  map.on('mousemove', 'parcelles-fill', (e) => {
-    const featureId = e.features?.at(0)?.id;
-    if (featureId) {
-      if (hoverId) {
-        map.setFeatureState(
-          {
-            source: 'cadastre',
-            id: hoverId,
-          },
-          {
-            hover: false,
-          },
-        );
-      }
-      hoverId = featureId;
-      map.getCanvas().style.cursor = 'pointer';
+    if (oldLandId) {
       map.setFeatureState(
         {
           source: 'cadastre',
-          id: featureId,
-        },
-        {
-          hover: true,
-        },
-      );
-    }
-  });
-
-  map.on('mouseleave', 'parcelles-fill', (e) => {
-    if (hoverId) {
-      map.getCanvas().style.cursor = '';
-      map.setFeatureState(
-        {
-          source: 'cadastre',
-          id: hoverId,
+          id: oldLandId,
         },
         {
           hover: false,
         },
       );
-      hoverId = undefined;
+      map.getCanvas().style.cursor = '';
     }
+
+    if (newLandId) {
+      map.setFeatureState(
+        {
+          source: 'cadastre',
+          id: newLandId,
+        },
+        {
+          hover: true,
+        },
+      );
+      canvas.style.cursor = 'pointer';
+    }
+  });
+
+  map.on('click', 'lands-fill', function (e) {
+    const landId = e.features?.at(0)?.properties?.id;
+    store.selectLand({ landId });
+  });
+
+  map.on('mousemove', 'lands-fill', (e) => {
+    const landId = e.features?.at(0)?.id;
+    store.highlightLand({ landId });
+  });
+
+  map.on('mouseleave', 'lands-fill', (e) => {
+    store.highlightLand({
+      landId: undefined,
+    });
   });
 });

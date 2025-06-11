@@ -16,7 +16,7 @@ map.on('load', () => {
 
   map.addSource('cadastre', {
     type: 'geojson',
-    data: '/cadastre/data/lands.json',
+    data: '/cadastre/lands.json',
     promoteId: 'id',
   });
 

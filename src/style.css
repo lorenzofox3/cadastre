@@ -78,6 +78,6 @@ canvas {
 @media (prefers-color-scheme: dark) {
     :root {
         --color: #c1c1c5;
-        --background: #15npm 1d3c;
+        --background: #151d3c;
     }
 }

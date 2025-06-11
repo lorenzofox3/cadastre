@@ -3,7 +3,7 @@ import '@maptiler/sdk/dist/maptiler-sdk.css';
 import * as maptilersdk from '@maptiler/sdk';
 import { createStore } from './store.js';
 
-maptilersdk.config.apiKey = '<API KEY>';
+maptilersdk.config.apiKey = import.meta.env.VITE_MAP_TILER_API_KEY;
 const map = new maptilersdk.Map({
   container: 'map', // container's id or the HTML element to render the map
   style: maptilersdk.MapStyle.HYBRID,

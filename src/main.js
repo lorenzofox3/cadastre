@@ -2,18 +2,23 @@ import './style.css';
 import '@maptiler/sdk/dist/maptiler-sdk.css';
 import * as maptilersdk from '@maptiler/sdk';
 import { createStore } from './store.js';
+import { decodeState, encodeState } from './utils.js';
 
 maptilersdk.config.apiKey = import.meta.env.VITE_MAP_TILER_API_KEY;
+
+const initialState = decodeState({ url: window.origin });
+const store = createStore({
+  initialState,
+});
+const { map: mapState } = store.getState();
+
 const map = new maptilersdk.Map({
   container: 'map', // container's id or the HTML element to render the map
   style: maptilersdk.MapStyle.HYBRID,
-  center: [5.6770271, 43.52602],
-  zoom: 18,
+  ...mapState,
 });
 
 map.on('load', () => {
-  const store = createStore({ map });
-
   map.addSource('cadastre', {
     type: 'geojson',
     data: '/cadastre/lands.json',
@@ -77,12 +82,12 @@ map.on('load', () => {
     },
   });
 
-  store.addEventListener('landSelected', (event) => {
+  store.on('landSelected', (event) => {
     const { selectedLand } = store.getState();
     map.getSource('limit-overlay').setData(selectedLand.ringGeoJSON);
   });
 
-  store.addEventListener('landHighlighted', ({ detail }) => {
+  store.on('landHighlighted', ({ detail }) => {
     const canvas = map.getCanvas();
     const { oldLandId, newLandId } = detail;
 
@@ -113,9 +118,18 @@ map.on('load', () => {
     }
   });
 
-  map.on('click', 'lands-fill', function (e) {
+  map.on('click', 'lands-fill', (e) => {
     const landId = e.features?.at(0)?.properties?.id;
-    store.selectLand({ landId });
+    const features = landId
+      ? map.querySourceFeatures('cadastre', {
+          filter: ['==', ['get', 'id'], landId],
+        })
+      : {
+          type: 'FeatureCollection',
+          features: [],
+        };
+
+    store.selectLand({ landId, features });
   });
 
   map.on('mousemove', 'lands-fill', (e) => {
@@ -128,4 +142,35 @@ map.on('load', () => {
       landId: undefined,
     });
   });
+
+  map.on('moveend', () => {
+    store.setCenter({
+      center: map.getCenter(),
+      zoom: map.getZoom(),
+    });
+  });
+
+  if (initialState?.selectedLand?.id) {
+    const landId = initialState.selectedLand.id;
+    store.selectLand({
+      landId,
+      features: map.querySourceFeatures('cadastre', {
+        filter: ['==', ['get', 'id'], landId],
+      }),
+    });
+  }
+});
+
+store.on('mapCenterChanged', () => {
+  const state = store.getState();
+  window.history.replaceState(state, null, encodeState({ state }));
+});
+
+store.on('landSelected', () => {
+  const state = store.getState();
+  const { state: historyState } = history;
+  const historyLandId = historyState?.selectedLand?.id;
+  if (state?.selectedLand?.id !== historyLandId) {
+    window.history.pushState(state, null, encodeState({ state })); // todo push store state ?
+  }
 });

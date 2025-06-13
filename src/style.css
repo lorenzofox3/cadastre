@@ -60,11 +60,15 @@ canvas {
     left: 1rem;
     top: 1rem;
     z-index: 1;
-    background-color: var(--background);
     color: var(--color);
     padding: 1em;
     width: 20em;
-    border-radius: 1em;
+    border-radius: 0.5em;
+    background: var(--background);
+    backdrop-filter: blur(13px);
+    -webkit-backdrop-filter: blur(13px);
+    opacity: 0.9;
+    border: 1px solid rgba(255,255,255,0.225);
     box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.2),
     0 4px 5px 0 rgba(0, 0, 0, 0.14),
     0 1px 10px 0 rgba(0, 0, 0, 0.12);

@@ -1,17 +1,18 @@
 import { buffer, difference, featureCollection, union } from '@turf/turf';
 
-export const createStore = ({ map }) => {
+export const createStore = ({ initialState }) => {
   const eventTarget = new EventTarget();
-  let _landId;
-  let _highlightedLandId;
+  const _state = structuredClone(initialState);
   const state = Object.defineProperties(
     {},
     {
       selectedLand: {
         get() {
+          const { id: landId, features = [] } = _state.selectedLand;
           return {
-            id: _landId ?? undefined,
-            ringGeoJSON: getRingGeoJSON({ landId: _landId, map }),
+            id: landId,
+            ringGeoJSON: getRingGeoJSON({ features }),
+            properties: features.at(0)?.properties,
           };
         },
         enumerable: true,
@@ -19,18 +20,36 @@ export const createStore = ({ map }) => {
 
       highlightedLand: {
         get() {
+          const {
+            highlightedLand: { id: highlightedLandId },
+          } = _state;
           return {
-            landId: _highlightedLandId ?? undefined,
+            landId: highlightedLandId,
           };
         },
+      },
+      map: {
+        get() {
+          return structuredClone(_state.map);
+        },
+        enumerable: true,
       },
     },
   );
 
-  // todo hide eventTargetInterface
-  return Object.assign(eventTarget, {
-    selectLand({ landId }) {
-      _landId = landId;
+  return {
+    on(...args) {
+      return eventTarget.addEventListener(...args);
+    },
+    off(...args) {
+      return eventTarget.removeEventListener(...args);
+    },
+    selectLand({ landId, features }) {
+      _state.selectedLand = {
+        id: landId,
+        features,
+      };
+
       eventTarget.dispatchEvent(
         new CustomEvent('landSelected', {
           detail: {
@@ -40,8 +59,8 @@ export const createStore = ({ map }) => {
       );
     },
     highlightLand({ landId: newLandId }) {
-      const oldLandId = _highlightedLandId;
-      _highlightedLandId = newLandId;
+      const { id: oldLandId } = _state.highlightedLand;
+      _state.highlightedLand = { id: newLandId };
       eventTarget.dispatchEvent(
         new CustomEvent('landHighlighted', {
           detail: {
@@ -51,29 +70,41 @@ export const createStore = ({ map }) => {
         }),
       );
     },
+    setCenter({ center, zoom }) {
+      _state.map = {
+        ..._state.map,
+        center,
+        zoom,
+      };
+      eventTarget.dispatchEvent(
+        new CustomEvent('mapCenterChanged', {
+          detail: {
+            center,
+            zoom,
+          },
+        }),
+      );
+    },
     getState() {
       return {
         ...state,
       };
     },
-  });
+  };
 };
 
-function getRingGeoJSON({ landId, map }) {
-  if (!landId) {
+function getRingGeoJSON({ features, borderSizeMeter = 4 }) {
+  if (!features?.length) {
     return {
       type: 'FeatureCollection',
       features: [],
     };
   }
 
-  const features = map.querySourceFeatures('cadastre', {
-    filter: ['==', ['get', 'id'], landId],
-  });
   const combinedPolygon =
     features.length >= 2 ? union(featureCollection(features)) : features.at(0);
 
-  const insetPolygon = buffer(combinedPolygon, -4, {
+  const insetPolygon = buffer(combinedPolygon, -borderSizeMeter, {
     units: 'meters',
   });
   const ringPolygon = insetPolygon

@@ -6,7 +6,7 @@ import { decodeState, encodeState } from './utils.js';
 
 maptilersdk.config.apiKey = import.meta.env.VITE_MAP_TILER_API_KEY;
 
-const initialState = decodeState({ url: window.origin });
+const initialState = decodeState({ url: window.location.href });
 const store = createStore({
   initialState,
 });
@@ -150,15 +150,18 @@ map.on('load', () => {
     });
   });
 
-  if (initialState?.selectedLand?.id) {
-    const landId = initialState.selectedLand.id;
-    store.selectLand({
-      landId,
-      features: map.querySourceFeatures('cadastre', {
-        filter: ['==', ['get', 'id'], landId],
-      }),
-    });
-  }
+  // todo hook to event instead
+  setTimeout(() => {
+    if (initialState?.selectedLand?.id) {
+      const landId = initialState.selectedLand.id;
+      store.selectLand({
+        landId,
+        features: map.querySourceFeatures('cadastre', {
+          filter: ['==', ['get', 'id'], landId],
+        }),
+      });
+    }
+  }, 1_000);
 });
 
 store.on('mapCenterChanged', () => {

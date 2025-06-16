@@ -2,12 +2,12 @@ export const encodeState = ({ state, origin = window.location }) => {
   const currentUrl = new URL(origin);
   const { center, zoom } = state.map;
   const { id: landId } = state.selectedLand;
-  const { lgn, lat } = center;
+  const { lng, lat } = center;
   const searchParams = new URLSearchParams(
     pickBy(
       {
         landId,
-        lgn,
+        lng,
         lat,
         zoom,
       },
@@ -25,7 +25,7 @@ export const decodeState = ({ url }) => {
   return {
     map: {
       center: [
-        searchParams.get('lgn') ?? 5.6770271,
+        searchParams.get('lng') ?? 5.6770271,
         searchParams.get('lat') ?? 43.52602,
       ],
       zoom: searchParams.get('zoom') ?? 17,
